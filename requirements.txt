@@ -1,0 +1,6 @@
+python-dotenv
+browser-use
+pydantic
+openpyxl
+pandas
+playwright

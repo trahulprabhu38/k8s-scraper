@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: scraper-job-$CHUNK_NUMBER
+spec:
+  template:
+    spec:
+      containers:
+      - name: scraper
+        image: your-dockerhub-username/scraper:latest
+        env:
+        - name: CHUNK_NUMBER
+          value: "$CHUNK_NUMBER"
+        volumeMounts:
+        - name: output-volume
+          mountPath: /data
+      restartPolicy: Never
+      volumes:
+      - name: output-volume
+        persistentVolumeClaim:
+          claimName: scraper-output-pvc
+  backoffLimit: 1
