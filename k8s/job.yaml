@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: scraper-job-0
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: input-volume
+          hostPath:
+            path: /mnt/data/input_chunks
+        - name: output-volume
+          hostPath:
+            path: /mnt/data/output_chunks
+      containers:
+        - name: scraper
+          image: trahulprabhu38/scraper:v4.1.6
+          env:
+            - name: CHUNK_NUMBER
+              value: "0"
+          volumeMounts:
+            - name: input-volume
+              mountPath: /mnt/data/input_chunks
+            - name: output-volume
+              mountPath: /mnt/data/output_chunks
+  backoffLimit: 1

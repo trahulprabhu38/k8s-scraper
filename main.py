@@ -250,8 +250,21 @@ async def process_universities_from_excel(excel_file, output_file):
         print(f"Error details: {e}")
 
 
-chunk_number = os.getenv("CHUNK_NUMBER")
-excel_file = f"chunker/input_chunks/chunk_{chunk_number}.csv"
-output_file = f"/data/output_{chunk_number}.xlsx"
+
+
+chunk_number = os.getenv("CHUNK_NUMBER","0")
+
+excel_file = f"/mnt/data/input_chunks/input_chunk_{chunk_number}.csv"
+output_file = f"/mnt/data/output_chunks/result_{chunk_number}.csv"
+
+
+
+
+# output_file = "/output/result.csv"
+
+# excel_file = f"input_chunks/input_chunk_{chunk_number}.csv"
+# output_file = f"/output/result_{chunk_number}.csv"
+
+# os.makedirs("/output", exist_ok=True)
 
 asyncio.run(process_universities_from_excel(excel_file, output_file))
