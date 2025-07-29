@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: scraper-job-0
+  name: scraper-job-${CHUNK_NUMBER}
 spec:
   template:
     spec:
@@ -18,7 +18,7 @@ spec:
           image: trahulprabhu38/scraper:v4.1.6
           env:
             - name: CHUNK_NUMBER
-              value: "0"
+              value: "${CHUNK_NUMBER}"
           volumeMounts:
             - name: input-volume
               mountPath: /mnt/data/input_chunks

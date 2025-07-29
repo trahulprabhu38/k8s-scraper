@@ -258,8 +258,6 @@ excel_file = f"/mnt/data/input_chunks/input_chunk_{chunk_number}.csv"
 output_file = f"/mnt/data/output_chunks/result_{chunk_number}.csv"
 
 
-
-
 # output_file = "/output/result.csv"
 
 # excel_file = f"input_chunks/input_chunk_{chunk_number}.csv"
