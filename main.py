@@ -1,19 +1,12 @@
 import os
+import pandas as pd
 from dotenv import load_dotenv
 from browser_use.llm import ChatOpenAI
 from browser_use import Agent, Controller, Browser
 from pydantic import BaseModel
 from browser_use.agent.views import ActionResult
 import asyncio
-import pandas as pd
-import pandas as pd
-import asyncio
-import os
-import pandas as pd
-import asyncio
-from openpyxl import load_workbook
 from openpyxl import Workbook
-from pandas import ExcelWriter
 # Load environment variables
 load_dotenv()
 # Initialize OpenAI model for use in the agent
@@ -21,7 +14,9 @@ llm = ChatOpenAI(
     model="gpt-4.1",
     temperature=0.1
 )
-browser = Browser(headless=True)  # Add headless=True to run in headless mode
+# Initialize the browser (headless for no UI)
+browser = Browser(headless=True)
+# Define the model to store university data
 class ExtractUniversityData(BaseModel):
     university_name: str
     programs: list[str]
@@ -34,28 +29,28 @@ class ExtractUniversityData(BaseModel):
     qs_ranking: str
     acceptance_rate: str
     institution_type: str
-    campus_facilities: list[str] # e.g., {"Library": "Available", "Labs": "Available", "Sports": "Available"}
+    campus_facilities: list[str]
     total_students: int
     residential_students: int
     non_residential_students: int
     about_university: str
-    admission_requirements: list[str]  # e.g., ["GRE", "TOEFL", "Documents"]
-    scholarships: list[str]  # e.g., ["Merit-based", "Need-based"]
-    cost_info: list[str]  # e.g., ["Domestic: $10,000", "International: $20,000"]
-    tuition_fee_structure: list[str]  # e.g., ["Per Year: $30,000", "Per Semester: $15,000"]
+    admission_requirements: list[str]
+    scholarships: list[str]
+    cost_info: list[str]
+    tuition_fee_structure: list[str]
     application_fee: float
-    housing_fee_info: list[str]  # e.g., ["On-campus: $5,000", "Off-campus: $4,000"]
+    housing_fee_info: list[str]
     living_expenses_per_month: float
     total_cost_of_attendance: float
     student_experience_details: str
     campus_life_highlights: str
     university_size: str
+# Controller to output model
 controller = Controller(output_model=ExtractUniversityData)
-# Define your task to extract the university data
+# Define task to extract university data
 async def main(website_url):
-    # Create a task description to explore the website
     task = f"""
-        You are tasked with exploring the university website provided and extracting the following details.
+        You are tasked with exploring the university website provided and extracting the following details:
         The website URL is: {website_url}
         1) Identify and list all programs available at the university, such as AIML, etc.
            Also, list the top 3 programs offered by the university based on relevance or ranking.
@@ -83,186 +78,85 @@ async def main(website_url):
         20) Collect student experience details such as reviews or comments.
         21) Look for highlights of campus life, including extracurricular activities, student groups, etc.
         22) Determine the university size: small (<10k students), medium (10k–30k students), or large (>30k students).
-        The website URL you will be exploring will be passed as an argument. You should dynamically fetch the details from the site and structure the response accordingly.
     """
-    # Initialize the Agent with the task and pass the website URL
-    agent = Agent(
-        task=task,
-        llm=llm,
-        controller=controller
-    )
-    # Execute the agent's task and fetch results
+    agent = Agent(task=task, llm=llm, controller=controller)
     result: ActionResult = await agent.run()
-    # Print the result (or store it as needed)
-    print(result)
     result_agent = result.final_result()
     if result_agent:
         parsed: ExtractUniversityData = ExtractUniversityData.model_validate_json(result_agent)
-        university_name = parsed.university_name
-        programs = parsed.programs
-        top_programs = parsed.top_programs
-        city = parsed.city
-        state = parsed.state
-        country = parsed.country
-        degree_levels = parsed.degree_levels
-        mode_of_study = parsed.mode_of_study
-        qs_ranking = parsed.qs_ranking
-        acceptance_rate = parsed.acceptance_rate
-        institution_type = parsed.institution_type
-        campus_facilities = parsed.campus_facilities
-        total_students = parsed.total_students
-        residential_students = parsed.residential_students
-        non_residential_students = parsed.non_residential_students
-        about_university = parsed.about_university
-        admission_requirements = parsed.admission_requirements
-        scholarships = parsed.scholarships
-        cost_info = parsed.cost_info
-        tuition_fee_structure = parsed.tuition_fee_structure
-        application_fee = parsed.application_fee
-        housing_fee = parsed.housing_fee_info
-        living_expenses_per_month = parsed.living_expenses_per_month
-        total_cost_of_attendance = parsed.total_cost_of_attendance
-        student_experience_details = parsed.student_experience_details
-        campus_life_highlights = parsed.campus_life_highlights
-        university_size = parsed.university_size
-        # Here you can process or store the extracted data as needed
-        # Prepare the data as a dictionary for DataFrame
-        data = {
-            "university_name": university_name,
-            "programs": ", ".join(programs),
-            "top_programs": ", ".join(top_programs),
-            "city": city,
-            "state": state,
-            "country": country,
-            "degree_levels": ", ".join(degree_levels),
-            "mode_of_study": ", ".join(mode_of_study),
-            "qs_ranking": qs_ranking,
-            "acceptance_rate": acceptance_rate,
-            "institution_type": institution_type,
-            "campus_facilities": campus_facilities,
-            "total_students": total_students,
-            "residential_students": residential_students,
-            "non_residential_students": non_residential_students,
-            "about_university": about_university,
-            "admission_requirements": admission_requirements,
-            "scholarships": scholarships,
-            "cost_info": cost_info,
-            "tuition_fee_structure": tuition_fee_structure,
-            "application_fee": application_fee,
-            "housing_fee_info": housing_fee,
-            "living_expenses_per_month": living_expenses_per_month,
-            "total_cost_of_attendance": total_cost_of_attendance,
-            "student_experience_details": student_experience_details,
-            "campus_life_highlights": campus_life_highlights,
-            "university_size": university_size
-        }
-        return data
-    return {"university_name": {website_url}}
-        # # Convert nested dicts to strings for Excel storage
-        # for key in ["location", "campus_facilities", "admission_requirements", "scholarships", "cost_info", "tuition_fee_structure", "housing_fee_info"]:
-        #     if isinstance(data[key], dict):
-        #         data[key] = str(data[key])
-        # # Create DataFrame and save to Excel
-        # df = pd.DataFrame([data])
-        # df.to_excel("university_data.xlsx", index=False)
-
+        return parsed.dict()
+    return {"university_name": website_url}  # In case of failure
+# Function to process universities from an input CSV file and save to output Excel
 async def process_universities_from_excel(excel_file, output_file):
-    # Create a new workbook for saving the results
+    # Initialize Workbook
     wb = Workbook()
     sheet = wb.active
     sheet.title = "University Data"
-    
-    try:
-        df = pd.read_csv(excel_file)
-
-        # Define headers for the new Excel sheet
-        headers = [
-            "university_name", "programs", "top_programs", "city", "state", "country",
-            "degree_levels", "mode_of_study", "qs_ranking", "acceptance_rate", "institution_type",
-            "campus_facilities", "total_students", "residential_students", "non_residential_students",
-            "about_university", "admission_requirements", "scholarships", "cost_info", "tuition_fee_structure",
-            "application_fee", "housing_fee_info", "living_expenses_per_month", "total_cost_of_attendance",
-            "student_experience_details", "campus_life_highlights", "university_size"
-        ]
-        
-        # Write headers to the new sheet
-        sheet.append(headers)
-
-        # Utility function to safely join lists or return strings
-        def safe_join(field):
-            if isinstance(field, list):
-                return ", ".join(field)
-            elif isinstance(field, str):
-                return field
-            else:
-                return ""
-
-        # Loop through each row in the DataFrame and process the university URLs
-        for _, row in df.iterrows():
-            website_url = row['HD2023.Institution\'s internet website address']
-            
-            # Call the main function to extract university data
-            result = await main(website_url)
-            
-            if result:
-                result_values = [
-                    result.get("university_name", ""),
-                    safe_join(result.get("programs")),
-                    safe_join(result.get("top_programs")),
-                    result.get("city", ""),
-                    result.get("state", ""),
-                    result.get("country", ""),
-                    safe_join(result.get("degree_levels")),
-                    safe_join(result.get("mode_of_study")),
-                    result.get("qs_ranking", ""),
-                    result.get("acceptance_rate", ""),
-                    result.get("institution_type", ""),
-                    safe_join(result.get("campus_facilities")),
-                    result.get("total_students", ""),
-                    result.get("residential_students", ""),
-                    result.get("non_residential_students", ""),
-                    result.get("about_university", ""),
-                    safe_join(result.get("admission_requirements")),
-                    safe_join(result.get("scholarships")),
-                    safe_join(result.get("cost_info")),
-                    safe_join(result.get("tuition_fee_structure")),
-                    result.get("application_fee", ""),
-                    safe_join(result.get("housing_fee_info")),
-                    result.get("living_expenses_per_month", ""),
-                    result.get("total_cost_of_attendance", ""),
-                    result.get("student_experience_details", ""),
-                    result.get("campus_life_highlights", ""),
-                    result.get("university_size", "")
-                ]
-                
-                # Append the data row to the Excel sheet
-                sheet.append(result_values)
-
-                print(f"Data saved for {website_url}")
-        
-        # Save the newly created Excel file
-        wb.save(output_file)
-        print(f"All data has been saved to {output_file}")
-
-    except Exception as e:
-        wb.save(output_file)
-        print(f"An error occurred while processing the file: {excel_file}")
-        print(f"Error details: {e}")
-
-
-
-
-chunk_number = os.getenv("CHUNK_NUMBER","0")
-
-excel_file = f"/mnt/data/input_chunks/input_chunk_{chunk_number}.csv"
-output_file = f"/mnt/data/output_chunks/result_{chunk_number}.csv"
-
-
-# output_file = "/output/result.csv"
-
-# excel_file = f"input_chunks/input_chunk_{chunk_number}.csv"
-# output_file = f"/output/result_{chunk_number}.csv"
-
-# os.makedirs("/output", exist_ok=True)
-
+    # Define headers for Excel
+    headers = [
+        "university_name", "programs", "top_programs", "city", "state", "country",
+        "degree_levels", "mode_of_study", "qs_ranking", "acceptance_rate", "institution_type",
+        "campus_facilities", "total_students", "residential_students", "non_residential_students",
+        "about_university", "admission_requirements", "scholarships", "cost_info", "tuition_fee_structure",
+        "application_fee", "housing_fee_info", "living_expenses_per_month", "total_cost_of_attendance",
+        "student_experience_details", "campus_life_highlights", "university_size"
+    ]
+    sheet.append(headers)
+    # Save the headers initially
+    wb.save(output_file)
+    # Helper function to join list fields
+    def safe_join(field):
+        if isinstance(field, list):
+            return ", ".join(field)
+        return field or ""
+    # Read the input CSV
+    df = pd.read_csv(excel_file)
+    # Iterate over each row in the CSV
+    for idx, row in df.iterrows():
+        website_url = row.get("HD2023.Institution's internet website address", "").strip()
+        if not website_url:
+            print(f"[{idx}] No URL found, skipping.")
+            continue
+        try:
+            # Process each website URL
+            data = await main(website_url)
+            result_values = [
+                data.get("university_name", ""),
+                safe_join(data.get("programs")),
+                safe_join(data.get("top_programs")),
+                data.get("city", ""),
+                data.get("state", ""),
+                data.get("country", ""),
+                safe_join(data.get("degree_levels")),
+                safe_join(data.get("mode_of_study")),
+                data.get("qs_ranking", ""),
+                data.get("acceptance_rate", ""),
+                data.get("institution_type", ""),
+                safe_join(data.get("campus_facilities")),
+                data.get("total_students", ""),
+                data.get("residential_students", ""),
+                data.get("non_residential_students", ""),
+                data.get("about_university", ""),
+                safe_join(data.get("admission_requirements")),
+                safe_join(data.get("scholarships")),
+                safe_join(data.get("cost_info")),
+                safe_join(data.get("tuition_fee_structure")),
+                data.get("application_fee", ""),
+                safe_join(data.get("housing_fee_info")),
+                data.get("living_expenses_per_month", ""),
+                data.get("total_cost_of_attendance", ""),
+                data.get("student_experience_details", ""),
+                data.get("campus_life_highlights", ""),
+                data.get("university_size", "")
+            ]
+            sheet.append(result_values)
+            wb.save(output_file)  # Save after each row
+            print(f"[{idx}] :heavy_tick: Saved data for {website_url}")
+        except Exception as e:
+            print(f"[{idx}] :heavy_multiplication_x: Failed for {website_url}: {e!r}")
+    print(f"Done. Partial results (and any successes) are in {output_file}")
+# Test setup
+excel_file = 'Manual_Collection_University_7_18_US.csv'  # Path to the input CSV file
+output_file = 'University_Data_Output_2.xlsx'  # Path to the output Excel file
+# Run the async function to process the websites
 asyncio.run(process_universities_from_excel(excel_file, output_file))
